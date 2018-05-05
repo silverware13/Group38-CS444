@@ -2,8 +2,7 @@
 # CS444 Spring 2018
 # -----------------
 # Name: Zachary Thomas
-# Email: thomasza@oregonstate.edu
-# Date: 4/22/2018
+# Date: 5/4/2018
 # ------------------------------------
 # Generates a ton of I/O on the kernel 
 # to test our I/O solution.
