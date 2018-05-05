@@ -43,7 +43,4 @@ for lp in range(10000):
 	#close the file
 	t1.close()
 
-	#remove the file
-	t1.remove()	
-
 print("I/O test complete.\n")
