@@ -16,6 +16,7 @@ from __future__ import print_function
 import random
 import string
 import os, glob
+import time
 
 print("Starting I/O test.\n")
 
@@ -24,11 +25,11 @@ string.ascii_letters
 'abcdefghijklmnopqrstuvwxyz'
 
 #write 100 files
-for lp in range(100):
+for lp in range(50):
 
 	#generate a strings with random letters
 	s1 = ""
-	for x in range(0, 500 * lp):
+	for x in range(0, 50 * lp):
 		s1 += random.choice(string.ascii_lowercase)
 	
 	#write the string to a file
@@ -38,6 +39,7 @@ for lp in range(100):
 
 	#close the file
 	t1.close()
+	time.sleep(0.1)
 
 	#open the file and then read
 	t1 = open(file_name, "r+")
@@ -45,6 +47,7 @@ for lp in range(100):
 	
 	#close the file
 	t1.close()
+	time.sleep(0.1)
 	
 	#write more to a file
 	t1 = open(file_name, "a+")
@@ -52,13 +55,14 @@ for lp in range(100):
 	
 	#close the file
 	t1.close()
+	time.sleep(0.1)
 
 #write 50 times to some of the previously created files
 for lp in range(50):
 
 	#generate a strings with random letters
 	s1 = ""
-	for x in range(0, 50000):
+	for x in range(0, 500):
 		s1 += random.choice(string.ascii_lowercase)
 	
 	#write more to a file
@@ -67,6 +71,7 @@ for lp in range(50):
 	
 	#close the file
 	t1.close()
+	time.sleep(0.1)
 
 
 #delete all test files
