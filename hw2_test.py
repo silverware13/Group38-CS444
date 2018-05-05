@@ -23,13 +23,13 @@ print("Starting I/O test.\n")
 string.ascii_letters
 'abcdefghijklmnopqrstuvwxyz'
 
-#write 10,000 times
-for lp in range(10000):
+#generate a strings with random letters
+s1 = ""
+for x in range(0, 500000):
+	s1 += random.choice(string.ascii_lowercase)
 
-	#generate a strings with random letters
-	s1 = ""
-	for x in range(0, 10000):
-		s1 += random.choice(string.ascii_lowercase)
+#write 1000 times
+for lp in range(1000):
 
 	#write the string to a file
 	file_name = "TEST_SCATTER_%d.txt" % lp
@@ -40,9 +40,15 @@ for lp in range(10000):
 	t1.close()
 
 	#open the file and then read
-	file_name = "TEST_SCATTER_%d.txt" % lp
 	t1 = open(file_name, "r+")
 	t1.read()
+	
+	#close the file
+	t1.close()
+	
+	#write more to a file
+	t1 = open(file_name, "a+")
+	t1.write(s1 + "\n")
 	
 	#close the file
 	t1.close()

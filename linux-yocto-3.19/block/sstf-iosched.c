@@ -90,7 +90,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * front of the head's sector.
  				 */
 				compare = list_entry(sort_head, struct request, queuelist);
-				if(blk_rq_pos(compare) > blk_rq_pos(rq) || blk_rq_pos(compare) > read_write_head) {
+				if(blk_rq_pos(compare) > blk_rq_pos(rq)) {
+					// || blk_rq_pos(compare) > read_write_head
 					list_add_tail(&rq->queuelist, sort_head);
 					return;
 				}
@@ -111,7 +112,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * put this request in front of it.
  				 */
 				compare = list_entry(sort_head, struct request, queuelist);
-				if(blk_rq_pos(compare) > blk_rq_pos(rq) && blk_rq_pos(compare) > read_write_head) {
+				if(blk_rq_pos(compare) > blk_rq_pos(rq)) {
+					//if(&& blk_rq_pos(compare) > read_write_head)
 					list_add_tail(&rq->queuelist, sort_head);
 					return;
 				}
