@@ -28,8 +28,8 @@ s1 = ""
 for x in range(0, 500000):
 	s1 += random.choice(string.ascii_lowercase)
 
-#write 1000 times
-for lp in range(1000):
+#write 250 times
+for lp in range(250):
 
 	#write the string to a file
 	file_name = "TEST_SCATTER_%d.txt" % lp
