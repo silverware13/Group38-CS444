@@ -13,7 +13,7 @@
  * Debug mode of 1 shows dispatch sector messages.
  * Debug mode of 2 shows adding request and dispatch sector messages.
  */
-#define DEBUG_MODE 2
+#define DEBUG_MODE 1
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 #include <linux/bio.h>
@@ -94,21 +94,30 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * put this sector infront of it.
  				 * If we can't find one before
  				 * we reach the head's sector
- 				 * we just put ourselves in
- 				 * front of the head's sector.
+ 				 * we just put ourselves before
+ 				 * the next sorted group.
  				 */
 				compare = list_entry(sort_head, struct request, queuelist);
 				if(DEBUG_MODE == 2) {
 					printk("[CURRENT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
 				}	
-				if(blk_rq_pos(compare) >= blk_rq_pos(rq) || blk_rq_pos(compare) >= RW_head) {
+				if(blk_rq_pos(compare) > blk_rq_pos(rq) || RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
 					if(DEBUG_MODE == 2) {
-						printk("[CURRENT] Added request for sector %llu\n", blk_rq_pos(rq));
+						printk("[CURRENT] Added request for sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
 			}
+			/*
+ 			 * Reached end of list before finding
+ 			 * what we were looking for. Add here.
+ 			 */
+			compare = list_entry(sort_head, struct request, queuelist);
+			list_add_tail(&rq->queuelist, sort_head);
+			if(DEBUG_MODE == 2) {
+				printk("[CURRENT] Added request for sector %llu. Reached end of list", blk_rq_pos(rq));
+			}	
 		} else {
 			/*
  			 * Since the request's sector was before 
@@ -127,14 +136,23 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				if(DEBUG_MODE == 2) {
 					printk("[NEXT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
 				}	
-				if(blk_rq_pos(compare) >= blk_rq_pos(rq) && blk_rq_pos(compare) >= RW_head) {
+				if(blk_rq_pos(compare) > blk_rq_pos(rq) && RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
 					if(DEBUG_MODE == 2) {
-						printk("[NEXT] Added request for sector %llu\n", blk_rq_pos(rq));
+						printk("[NEXT] Added request for sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
 			}
+			/*
+ 			 * Reached end of list before finding
+ 			 * what we were looking for. Add here.
+ 			 */
+			compare = list_entry(sort_head, struct request, queuelist);
+			list_add_tail(&rq->queuelist, sort_head);
+			if(DEBUG_MODE == 2) {
+				printk("[NEXT] Added request for sector %llu. Reached end of list", blk_rq_pos(rq));
+			}	
 		}
 	} else {
 		/*
