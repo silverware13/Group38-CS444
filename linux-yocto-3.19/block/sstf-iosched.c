@@ -50,7 +50,7 @@ static int sstf_dispatch(struct request_queue *q, int force)
 			 * To show that our solution is correct we want to
 			 * be able to plot our sectors against time.
 			 */
-			printk("Dispatching from sector %i\n", read_write_head);	
+			printk("Dispatched from sector %i\n", read_write_head);	
 		}
 		elv_dispatch_sort(q, rq);
 		return 1;
@@ -61,11 +61,10 @@ static int sstf_dispatch(struct request_queue *q, int force)
 static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *nd = q->elevator->elevator_data;
-	struct request *rq;
+	struct request *compare;
+	compare = list_entry(nd->queue.next, struct request, queuelist);
 	
 	if (!list_empty(&nd->queue)) {
-		rq = list_entry(nd->queue.next, struct request, queuelist);
-
 		/*
  		 * We check to see if the request's sector
  		 * is above the current location of the
@@ -78,7 +77,22 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  			 * so it will be handled on the
  			 * current pass.
  			 */
-			
+			list_for_each(compare, &nd->queue) {
+				/*
+ 				 * THIS IS THE SORT FOR THE CURRENT PASS
+ 				 * We look for any sector larger
+ 				 * than the requested sector and 
+ 				 * put this sector infront of it.
+ 				 * If we can't find one before
+ 				 * we reach the head's sector
+ 				 * we just put ourselves in
+ 				 * front of the head's sector.
+ 				 */
+				if(blk_rq_pos(compare) > blk_rq_pos(rq) || blk_rq_pos(compare) > read_write_head) {
+					list_add_tail(&rq->queuelist, compare);
+					return;
+				}
+			}
 		} else {
 			/*
  			 * Since the request's sector was not 
@@ -86,6 +100,19 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  			 * so it will be handled on the
  			 * next pass.
  			 */
+			list_for_each(compare, &nd->queue) {
+				/*
+ 			 	 * THIS IS THE SORT FOR THE NEXT PASS
+ 				 * We move past the head's sector in
+ 				 * the queue. Then we find a sector 
+ 				 * that is larger than this one and 
+ 				 * put this request in front of it.
+ 				 */
+				if(blk_rq_pos(compare) > blk_rq_pos(rq) && blk_rq_pos(compare) > read_write_head) {
+					list_add_tail(&rq->queuelist, compare);
+					return;
+				}
+			}
 		}
 	} else {
 		/*
@@ -94,8 +121,6 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 		 */
 		list_add_tail(&rq->queuelist, &nd->queue);
 	}
-	//sort first upwards based on sector of drive
-	//now sort based on location of head
 }
 
 static struct request *
