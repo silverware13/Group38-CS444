@@ -8,7 +8,12 @@
  * Jiaji Sun. 
  */
 
-#define DEBUG_MODE 1
+/*
+ * Debug mode of 0 shows no messages.
+ * Debug mode of 1 shows dispatch sector messages.
+ * Debug mode of 2 shows adding request and dispatch sector messages.
+ */
+#define DEBUG_MODE 2
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 #include <linux/bio.h>
@@ -20,7 +25,7 @@
  * Global variable that keeps track of
  * the location of the read/write head.
  */
-int read_write_head = -1;
+sector_t RW_head = 0;
 
 struct sstf_data {
 	struct list_head queue;
@@ -40,19 +45,19 @@ static int sstf_dispatch(struct request_queue *q, int force)
 		struct request *rq;
 		rq = list_entry(nd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
+		elv_dispatch_sort(q, rq);
 		/* 
  		 * We can assume that the head of the dispatch queue is the
  		 * current location of the read/write head.
  		 */
-		read_write_head = blk_rq_pos(rq);	
+		RW_head = blk_rq_pos(rq);	
 		if(DEBUG_MODE) {
 			/*
 			 * To show that our solution is correct we want to
 			 * be able to plot our sectors against time.
 			 */
-			printk("Dispatched from sector %i\n", read_write_head);	
+			printk("Dispatched from sector %llu\n", RW_head);	
 		}
-		elv_dispatch_sort(q, rq);
 		return 1;
 	}
 	return 0;
@@ -71,12 +76,15 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  		 * is after the current location of the
  		 * read/write head. 
  		 */
-		if(blk_rq_pos(rq) > read_write_head) {
+		if(blk_rq_pos(rq) >= RW_head) {
+			if(DEBUG_MODE == 2) {
+				printk("Adding request from sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
+			}	
 			/*
- 			 * Since the request's sector was 
- 			 * after the head's sector we sort
- 			 * so it will be handled on the
- 			 * current pass.
+ 			 * Since the request's sector was after 
+ 			 * or shares the head's sector we sort 
+ 			 * so it will be handled on 
+ 			 * the current pass.
  			 */
 			list_for_each(sort_head, &nd->queue) {
 				/*
@@ -90,18 +98,22 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * front of the head's sector.
  				 */
 				compare = list_entry(sort_head, struct request, queuelist);
-				if(blk_rq_pos(compare) > blk_rq_pos(rq)) {
-					// || blk_rq_pos(compare) > read_write_head
+				if(DEBUG_MODE == 2) {
+					printk("[CURRENT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
+				}	
+				if(blk_rq_pos(compare) >= blk_rq_pos(rq) || blk_rq_pos(compare) >= RW_head) {
 					list_add_tail(&rq->queuelist, sort_head);
+					if(DEBUG_MODE == 2) {
+						printk("[CURRENT] Added request for sector %llu\n", blk_rq_pos(rq));
+					}	
 					return;
 				}
 			}
 		} else {
 			/*
- 			 * Since the request's sector was not 
- 			 * after the head's we sort it
- 			 * so it will be handled on the
- 			 * next pass.
+ 			 * Since the request's sector was before 
+ 			 * the head's sector we sort it so it 
+ 			 * will be handled on the next pass.
  			 */
 			list_for_each(sort_head, &nd->queue) {
 				/*
@@ -112,9 +124,14 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * put this request in front of it.
  				 */
 				compare = list_entry(sort_head, struct request, queuelist);
-				if(blk_rq_pos(compare) > blk_rq_pos(rq)) {
-					//if(&& blk_rq_pos(compare) > read_write_head)
+				if(DEBUG_MODE == 2) {
+					printk("[NEXT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
+				}	
+				if(blk_rq_pos(compare) >= blk_rq_pos(rq) && blk_rq_pos(compare) >= RW_head) {
 					list_add_tail(&rq->queuelist, sort_head);
+					if(DEBUG_MODE == 2) {
+						printk("[NEXT] Added request for sector %llu\n", blk_rq_pos(rq));
+					}	
 					return;
 				}
 			}
@@ -124,6 +141,9 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 		 * If the list is empty there is no need
 		 * to sort. Just add.
 		 */
+		if(DEBUG_MODE == 2) {
+			printk("Adding request from sector %llu. R/W head is in sector %llu. Was empty\n", blk_rq_pos(rq), RW_head);
+		}	
 		list_add_tail(&rq->queuelist, &nd->queue);
 	}
 }
