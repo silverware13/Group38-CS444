@@ -62,22 +62,23 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *nd = q->elevator->elevator_data;
 	struct request *compare;
-	compare = list_entry(nd->queue.next, struct request, queuelist);
-	
+	struct list_head *sort_head;
+
+	// Check if list is empty.	
 	if (!list_empty(&nd->queue)) {
 		/*
  		 * We check to see if the request's sector
- 		 * is above the current location of the
+ 		 * is after the current location of the
  		 * read/write head. 
  		 */
 		if(blk_rq_pos(rq) > read_write_head) {
 			/*
  			 * Since the request's sector was 
- 			 * higher than the head's we sort
+ 			 * after the head's sector we sort
  			 * so it will be handled on the
  			 * current pass.
  			 */
-			list_for_each(compare, &nd->queue) {
+			list_for_each(sort_head, &nd->queue) {
 				/*
  				 * THIS IS THE SORT FOR THE CURRENT PASS
  				 * We look for any sector larger
@@ -88,19 +89,20 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * we just put ourselves in
  				 * front of the head's sector.
  				 */
+				compare = list_entry(sort_head, struct request, queuelist);
 				if(blk_rq_pos(compare) > blk_rq_pos(rq) || blk_rq_pos(compare) > read_write_head) {
-					list_add_tail(&rq->queuelist, compare);
+					list_add_tail(&rq->queuelist, sort_head);
 					return;
 				}
 			}
 		} else {
 			/*
  			 * Since the request's sector was not 
- 			 * higher than the head's we sort it
+ 			 * after the head's we sort it
  			 * so it will be handled on the
  			 * next pass.
  			 */
-			list_for_each(compare, &nd->queue) {
+			list_for_each(sort_head, &nd->queue) {
 				/*
  			 	 * THIS IS THE SORT FOR THE NEXT PASS
  				 * We move past the head's sector in
@@ -108,15 +110,16 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  				 * that is larger than this one and 
  				 * put this request in front of it.
  				 */
+				compare = list_entry(sort_head, struct request, queuelist);
 				if(blk_rq_pos(compare) > blk_rq_pos(rq) && blk_rq_pos(compare) > read_write_head) {
-					list_add_tail(&rq->queuelist, compare);
+					list_add_tail(&rq->queuelist, sort_head);
 					return;
 				}
 			}
 		}
 	} else {
 		/*
-		 * If the queue is empty there is no need
+		 * If the list is empty there is no need
 		 * to sort. Just add.
 		 */
 		list_add_tail(&rq->queuelist, &nd->queue);
@@ -124,8 +127,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 }
 
 static struct request *
-sst_entry(sd->queue.next, struct request, queuelist);
-		prevrq = list_entry(nextrq->queuelist.prev, struct request, queuelist);stf_former_reques(struct request_queue *q, struct request *rq)
+sstf_former_request(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *nd = q->elevator->elevator_data;
 
