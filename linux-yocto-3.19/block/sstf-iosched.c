@@ -10,8 +10,8 @@
 
 /*
  * Debug mode of 0 shows no messages.
- * Debug mode of 1 shows dispatch sector messages.
- * Debug mode of 2 shows adding request and dispatch sector messages.
+ * Debug mode of 1 shows added request and dispatch sector messages.
+ * Debug mode of 2 shows added request, request comparison and dispatch sector messages.
  */
 #define DEBUG_MODE 1
 #include <linux/blkdev.h>
@@ -56,7 +56,7 @@ static int sstf_dispatch(struct request_queue *q, int force)
 			 * To show that our solution is correct we want to
 			 * be able to plot our sectors against time.
 			 */
-			printk("Dispatched from sector %llu\n", RW_head);	
+			printk("Dispatch sector %llu\n", RW_head);	
 		}
 		return 1;
 	}
@@ -77,9 +77,6 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  		 * read/write head. 
  		 */
 		if(blk_rq_pos(rq) >= RW_head) {
-			if(DEBUG_MODE == 2) {
-				printk("Adding request from sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
-			}	
 			/*
  			 * Since the request's sector was after 
  			 * or shares the head's sector we sort 
@@ -103,8 +100,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				}	
 				if(blk_rq_pos(compare) > blk_rq_pos(rq) || RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
-					if(DEBUG_MODE == 2) {
-						printk("[CURRENT] Added request for sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
+					if(DEBUG_MODE) {
+						printk("Added request for sector %llu\n", blk_rq_pos(rq));
 					}	
 					return;
 				}
@@ -116,7 +113,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 			compare = list_entry(sort_head, struct request, queuelist);
 			list_add_tail(&rq->queuelist, sort_head);
 			if(DEBUG_MODE == 2) {
-				printk("[CURRENT] Added request for sector %llu. Reached end of list", blk_rq_pos(rq));
+				printk("Added request for sector %llu\n", blk_rq_pos(rq));
 			}	
 		} else {
 			/*
@@ -138,8 +135,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				}	
 				if(blk_rq_pos(compare) > blk_rq_pos(rq) && RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
-					if(DEBUG_MODE == 2) {
-						printk("[NEXT] Added request for sector %llu. R/W head is in sector %llu\n", blk_rq_pos(rq), RW_head);
+					if(DEBUG_MODE) {
+						printk("Added request for sector %llu\n", blk_rq_pos(rq));
 					}	
 					return;
 				}
@@ -150,8 +147,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
  			 */
 			compare = list_entry(sort_head, struct request, queuelist);
 			list_add_tail(&rq->queuelist, sort_head);
-			if(DEBUG_MODE == 2) {
-				printk("[NEXT] Added request for sector %llu. Reached end of list", blk_rq_pos(rq));
+			if(DEBUG_MODE) {
+				printk("Added request for sector %llu\n", blk_rq_pos(rq));
 			}	
 		}
 	} else {
@@ -159,8 +156,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 		 * If the list is empty there is no need
 		 * to sort. Just add.
 		 */
-		if(DEBUG_MODE == 2) {
-			printk("Adding request from sector %llu. R/W head is in sector %llu. Was empty\n", blk_rq_pos(rq), RW_head);
+		if(DEBUG_MODE) {
+			printk("Added request for sector %llu. List was empty\n", blk_rq_pos(rq));
 		}	
 		list_add_tail(&rq->queuelist, &nd->queue);
 	}

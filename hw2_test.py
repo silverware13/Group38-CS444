@@ -23,14 +23,14 @@ print("Starting I/O test.\n")
 string.ascii_letters
 'abcdefghijklmnopqrstuvwxyz'
 
-#generate a strings with random letters
-s1 = ""
-for x in range(0, 500000):
-	s1 += random.choice(string.ascii_lowercase)
+#write 100 files
+for lp in range(100):
 
-#write 250 times
-for lp in range(250):
-
+	#generate a strings with random letters
+	s1 = ""
+	for x in range(0, 500 * lp):
+		s1 += random.choice(string.ascii_lowercase)
+	
 	#write the string to a file
 	file_name = "TEST_SCATTER_%d.txt" % lp
 	t1 = open(file_name, "w+")
@@ -52,6 +52,22 @@ for lp in range(250):
 	
 	#close the file
 	t1.close()
+
+#write 50 times to some of the previously created files
+for lp in range(50):
+
+	#generate a strings with random letters
+	s1 = ""
+	for x in range(0, 50000):
+		s1 += random.choice(string.ascii_lowercase)
+	
+	#write more to a file
+	t1 = open(file_name, "a+")
+	t1.write(s1 + "\n")
+	
+	#close the file
+	t1.close()
+
 
 #delete all test files
 for filename in glob.glob("./TEST_SCATTER*"):
