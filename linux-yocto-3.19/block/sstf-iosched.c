@@ -34,12 +34,13 @@ static int sstf_dispatch(struct request_queue *q, int force)
 
 static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
+	sector_t s1 = blk_rq_pos(rq);
+
 	struct sstf_data *nd = q->elevator->elevator_data;
-	
+	printk("Sector %i\n", s1);	
 	list_add_tail(&rq->queuelist, &nd->queue);
 	//sort first upwards based on sector of drive
 	//now sort based on location of head
-	printk("Request added test");
 }
 
 static struct request *
