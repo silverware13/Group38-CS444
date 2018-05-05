@@ -1,6 +1,13 @@
 /*
  * elevator C-LOOK
+ * Modified noop elevator
+ * ----------------------
+ * CS444 Spring 2018
+ * Project 2: I/O Elevators
+ * Zachary Thomas, Cameron Friel,
+ * Jiaji Sun. 
  */
+
 #define DEBUG_MODE 1
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
@@ -8,6 +15,12 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/init.h>
+
+/*
+ * Global variable that keeps track of
+ * the location of the read/write head.
+ */
+int read_write_head = -1;
 
 struct sstf_data {
 	struct list_head queue;
@@ -27,10 +40,17 @@ static int sstf_dispatch(struct request_queue *q, int force)
 		struct request *rq;
 		rq = list_entry(nd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
-		//we get the sector of the dispatched request for testing
+		/* 
+ 		 * We can assume that the head of the dispatch queue is the
+ 		 * current location of the read/write head.
+ 		 */
+		read_write_head = blk_rq_pos(rq);	
 		if(DEBUG_MODE) {
-			sector_t s1 = blk_rq_pos(rq);	
-			printk("Sector %i\n", s1);	
+			/*
+			 * To show that our solution is correct we want to
+			 * be able to plot our sectors against time.
+			 */
+			printk("Dispatching from sector %i\n", read_write_head);	
 		}
 		elv_dispatch_sort(q, rq);
 		return 1;
@@ -40,16 +60,47 @@ static int sstf_dispatch(struct request_queue *q, int force)
 
 static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
-	sector_t s1 = blk_rq_pos(rq);
-
 	struct sstf_data *nd = q->elevator->elevator_data;
-	list_add_tail(&rq->queuelist, &nd->queue);
+	struct request *rq;
+	
+	if (!list_empty(&nd->queue)) {
+		rq = list_entry(nd->queue.next, struct request, queuelist);
+
+		/*
+ 		 * We check to see if the request's sector
+ 		 * is above the current location of the
+ 		 * read/write head. 
+ 		 */
+		if(blk_rq_pos(rq) > read_write_head) {
+			/*
+ 			 * Since the request's sector was 
+ 			 * higher than the head's we sort
+ 			 * so it will be handled on the
+ 			 * current pass.
+ 			 */
+			
+		} else {
+			/*
+ 			 * Since the request's sector was not 
+ 			 * higher than the head's we sort it
+ 			 * so it will be handled on the
+ 			 * next pass.
+ 			 */
+		}
+	} else {
+		/*
+		 * If the queue is empty there is no need
+		 * to sort. Just add.
+		 */
+		list_add_tail(&rq->queuelist, &nd->queue);
+	}
 	//sort first upwards based on sector of drive
 	//now sort based on location of head
 }
 
 static struct request *
-sstf_former_request(struct request_queue *q, struct request *rq)
+sst_entry(sd->queue.next, struct request, queuelist);
+		prevrq = list_entry(nextrq->queuelist.prev, struct request, queuelist);stf_former_reques(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *nd = q->elevator->elevator_data;
 
@@ -128,6 +179,6 @@ module_init(sstf_init);
 module_exit(sstf_exit);
 
 
-MODULE_AUTHOR("Jens Axboe");
+MODULE_AUTHOR("Jens Axboe + group38");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("SSTF IO scheduler");

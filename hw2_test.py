@@ -1,4 +1,4 @@
-# HW2 test.py
+# HW2 test
 # CS444 Spring 2018
 # -----------------
 # Name: Zachary Thomas
@@ -28,7 +28,7 @@ for lp in range(10000):
 
 	#generate a strings with random letters
 	s1 = ""
-	for x in range(0, 1000):
+	for x in range(0, 10000):
 		s1 += random.choice(string.ascii_lowercase)
 
 	#write the string to a file
@@ -39,8 +39,6 @@ for lp in range(10000):
 	#close the file
 	t1.close()
 
-#read 10,000 times
-for lp in range(10000):
 	#open the file and then read
 	file_name = "TEST_SCATTER_%d.txt" % lp
 	t1 = open(file_name, "r+")
