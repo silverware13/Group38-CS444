@@ -1,6 +1,7 @@
 /*
  * elevator C-LOOK
  */
+#define DEBUG_MODE 1
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 #include <linux/bio.h>
@@ -26,6 +27,11 @@ static int sstf_dispatch(struct request_queue *q, int force)
 		struct request *rq;
 		rq = list_entry(nd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
+		//we get the sector of the dispatched request for testing
+		if(DEBUG_MODE) {
+			sector_t s1 = blk_rq_pos(rq);	
+			printk("Sector %i\n", s1);	
+		}
 		elv_dispatch_sort(q, rq);
 		return 1;
 	}
@@ -37,7 +43,6 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 	sector_t s1 = blk_rq_pos(rq);
 
 	struct sstf_data *nd = q->elevator->elevator_data;
-	printk("Sector %i\n", s1);	
 	list_add_tail(&rq->queuelist, &nd->queue);
 	//sort first upwards based on sector of drive
 	//now sort based on location of head

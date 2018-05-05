@@ -15,14 +15,16 @@
 from __future__ import print_function
 import random
 import string
+import os, glob
 
 print("Starting I/O test.\n")
 
-#write and read 10,000 times
+#set our string to all lowercase letters
+string.ascii_letters
+'abcdefghijklmnopqrstuvwxyz'
+
+#write 10,000 times
 for lp in range(10000):
-	#set our string to all lowercase letters
-	string.ascii_letters
-	'abcdefghijklmnopqrstuvwxyz'
 
 	#generate a strings with random letters
 	s1 = ""
@@ -30,17 +32,25 @@ for lp in range(10000):
 		s1 += random.choice(string.ascii_lowercase)
 
 	#write the string to a file
-	t1 = open("textFile.txt", "w+")
+	file_name = "TEST_SCATTER_%d.txt" % lp
+	t1 = open(file_name, "w+")
 	t1.write(s1 + "\n")
 
 	#close the file
 	t1.close()
 
+#read 10,000 times
+for lp in range(10000):
 	#open the file and then read
-	t1 = open("textFile.txt", "r+")
+	file_name = "TEST_SCATTER_%d.txt" % lp
+	t1 = open(file_name, "r+")
 	t1.read()
 	
 	#close the file
 	t1.close()
+
+#delete all test files
+for filename in glob.glob("./TEST_SCATTER*"):
+	os.remove(filename)
 
 print("I/O test complete.\n")
