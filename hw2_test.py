@@ -16,6 +16,7 @@ from __future__ import print_function
 import random
 import string
 import os, glob
+import ctypes
 
 print("Starting I/O test.\n")
 
@@ -36,6 +37,10 @@ for lp in range(5):
 	t1 = open(file_name, "w+")
 	t1.write(s1 + "\n")
 
+	#synchronize data on disk with memory
+	libc = ctypes.CDLL("libc.so.6")
+	libc.sync()
+	
 	#close the file
 	t1.close()
 
@@ -46,12 +51,20 @@ for lp in range(5):
 	#close the file
 	t1.close()
 	
+	#synchronize data on disk with memory
+	libc = ctypes.CDLL("libc.so.6")
+	libc.sync()
+	
 	#write more to a file
 	t1 = open(file_name, "a+")
 	t1.write(s1 + "\n")
 	
 	#close the file
 	t1.close()
+
+	#synchronize data on disk with memory
+	libc = ctypes.CDLL("libc.so.6")
+	libc.sync()
 
 #delete all test files
 for filename in glob.glob("./TEST_SCATTER*"):
