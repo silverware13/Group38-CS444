@@ -10,10 +10,10 @@
 
 /*
  * Debug mode of 0 shows no messages.
- * Debug mode of 1 shows added request and dispatch sector messages.
+ * Debug mode of 1 shows dispatch sector messages.
  * Debug mode of 2 shows added request, request comparison and dispatch sector messages.
  */
-#define DEBUG_MODE 1
+#define DEBUG_MODE 2
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
 #include <linux/bio.h>
@@ -79,6 +79,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 	struct sstf_data *nd = q->elevator->elevator_data;
 	struct request *compare;
 	struct list_head *sort_head;
+	sort_head = &nd->queue;
 
 	// Check if list is empty.	
 	if (!list_empty(&nd->queue)) {
@@ -109,10 +110,10 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				if(DEBUG_MODE == 2) {
 					printk("[CURRENT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
 				}	
-				if(blk_rq_pos(compare) > blk_rq_pos(rq) || RW_head > blk_rq_pos(compare)) {
+				if(blk_rq_pos(rq) < blk_rq_pos(compare) || RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
-					if(DEBUG_MODE) {
-						printk("Added request for sector %llu\n", blk_rq_pos(rq));
+					if(DEBUG_MODE == 2) {
+						printk("[CURRENT] Added request for sector %llu. Head sector %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
@@ -135,10 +136,10 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				if(DEBUG_MODE == 2) {
 					printk("[NEXT] Sorting request for sector %llu. Comparing to request in sector %llu\n", blk_rq_pos(rq), blk_rq_pos(compare));
 				}	
-				if(blk_rq_pos(compare) > blk_rq_pos(rq) && RW_head > blk_rq_pos(compare)) {
+				if(blk_rq_pos(rq) < blk_rq_pos(compare) && RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
-					if(DEBUG_MODE) {
-						printk("Added request for sector %llu\n", blk_rq_pos(rq));
+					if(DEBUG_MODE == 2) {
+						printk("[NEXT] Added request for sector %llu. Head sector %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
@@ -146,11 +147,11 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 		}
 	}
 	/* If we reached the end of the list or
-	 * if the list is empty there is no need
-	 * to sort. Just add to end of list.
+	 * if the list is empty there is no further
+	 * need to sort. Just add.
 	 */
-	list_add_tail(&rq->queuelist, &nd->queue);
-	if(DEBUG_MODE) {
+	list_add_tail(&rq->queuelist, sort_head);
+	if(DEBUG_MODE == 2) {
 		printk("Added request for sector %llu\n", blk_rq_pos(rq));
 	}
 }
