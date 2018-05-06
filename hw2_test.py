@@ -16,7 +16,6 @@ from __future__ import print_function
 import random
 import string
 import os, glob
-import time
 
 print("Starting I/O test.\n")
 
@@ -24,14 +23,14 @@ print("Starting I/O test.\n")
 string.ascii_letters
 'abcdefghijklmnopqrstuvwxyz'
 
-#write 100 files
-for lp in range(50):
+#generate a strings with random letters
+s1 = ""
+for x in range(0, 1000000):
+	s1 += random.choice(string.ascii_lowercase)
 
-	#generate a strings with random letters
-	s1 = ""
-	for x in range(0, 50 * lp):
-		s1 += random.choice(string.ascii_lowercase)
-	
+#write 100 files
+for lp in range(5):
+
 	#write the string to a file
 	file_name = "TEST_SCATTER_%d.txt" % lp
 	t1 = open(file_name, "w+")
@@ -39,7 +38,6 @@ for lp in range(50):
 
 	#close the file
 	t1.close()
-	time.sleep(0.1)
 
 	#open the file and then read
 	t1 = open(file_name, "r+")
@@ -47,7 +45,6 @@ for lp in range(50):
 	
 	#close the file
 	t1.close()
-	time.sleep(0.1)
 	
 	#write more to a file
 	t1 = open(file_name, "a+")
@@ -55,24 +52,6 @@ for lp in range(50):
 	
 	#close the file
 	t1.close()
-	time.sleep(0.1)
-
-#write 50 times to some of the previously created files
-for lp in range(50):
-
-	#generate a strings with random letters
-	s1 = ""
-	for x in range(0, 500):
-		s1 += random.choice(string.ascii_lowercase)
-	
-	#write more to a file
-	t1 = open(file_name, "a+")
-	t1.write(s1 + "\n")
-	
-	#close the file
-	t1.close()
-	time.sleep(0.1)
-
 
 #delete all test files
 for filename in glob.glob("./TEST_SCATTER*"):

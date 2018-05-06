@@ -40,6 +40,8 @@ static void sstf_merged_requests(struct request_queue *q, struct request *rq,
 static int sstf_dispatch(struct request_queue *q, int force)
 {
 	struct sstf_data *nd = q->elevator->elevator_data;
+	struct list_head *display_head;
+	struct request *temp;
 
 	if (!list_empty(&nd->queue)) {
 		struct request *rq;
@@ -56,7 +58,16 @@ static int sstf_dispatch(struct request_queue *q, int force)
 			 * To show that our solution is correct we want to
 			 * be able to plot our sectors against time.
 			 */
-			printk("Dispatch sector %llu\n", RW_head);	
+			printk("Dispatched request for sector %llu\n", RW_head);
+			/*
+ 			 * Show the contents of the queue.
+ 			 */
+			printk("Contents of request_queue:"); 
+			list_for_each(display_head, &nd->queue) {
+				temp = list_entry(display_head, struct request, queuelist);
+				printk("%llu, ", blk_rq_pos(temp)); 
+			}
+			printk("\n");
 		}
 		return 1;
 	}
@@ -106,15 +117,6 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 					return;
 				}
 			}
-			/*
- 			 * Reached end of list before finding
- 			 * what we were looking for. Add here.
- 			 */
-			compare = list_entry(sort_head, struct request, queuelist);
-			list_add_tail(&rq->queuelist, sort_head);
-			if(DEBUG_MODE == 2) {
-				printk("Added request for sector %llu\n", blk_rq_pos(rq));
-			}	
 		} else {
 			/*
  			 * Since the request's sector was before 
@@ -141,25 +143,15 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 					return;
 				}
 			}
-			/*
- 			 * Reached end of list before finding
- 			 * what we were looking for. Add here.
- 			 */
-			compare = list_entry(sort_head, struct request, queuelist);
-			list_add_tail(&rq->queuelist, sort_head);
-			if(DEBUG_MODE) {
-				printk("Added request for sector %llu\n", blk_rq_pos(rq));
-			}	
 		}
-	} else {
-		/*
-		 * If the list is empty there is no need
-		 * to sort. Just add.
-		 */
-		if(DEBUG_MODE) {
-			printk("Added request for sector %llu. List was empty\n", blk_rq_pos(rq));
-		}	
-		list_add_tail(&rq->queuelist, &nd->queue);
+	}
+	/* If we reached the end of the list or
+	 * if the list is empty there is no need
+	 * to sort. Just add to end of list.
+	 */
+	list_add_tail(&rq->queuelist, &nd->queue);
+	if(DEBUG_MODE) {
+		printk("Added request for sector %llu\n", blk_rq_pos(rq));
 	}
 }
 
