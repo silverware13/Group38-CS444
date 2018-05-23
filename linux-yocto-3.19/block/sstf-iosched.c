@@ -113,7 +113,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				if(blk_rq_pos(rq) < blk_rq_pos(compare) || RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
 					if(DEBUG_MODE == 2) {
-						printk("[CURRENT] Added request for sector %llu. Head sector %llu\n", blk_rq_pos(rq), RW_head);
+						printk("Added request for sector %llu. Head sector is %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
@@ -139,7 +139,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 				if(blk_rq_pos(rq) < blk_rq_pos(compare) && RW_head > blk_rq_pos(compare)) {
 					list_add_tail(&rq->queuelist, sort_head);
 					if(DEBUG_MODE == 2) {
-						printk("[NEXT] Added request for sector %llu. Head sector %llu\n", blk_rq_pos(rq), RW_head);
+						printk("Added request for sector %llu. Head sector is %llu\n", blk_rq_pos(rq), RW_head);
 					}	
 					return;
 				}
@@ -152,7 +152,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 	 */
 	list_add_tail(&rq->queuelist, sort_head);
 	if(DEBUG_MODE == 2) {
-		printk("Added request for sector %llu\n", blk_rq_pos(rq));
+		printk("Added request for sector %llu. Head sector is %llu\n", blk_rq_pos(rq), RW_head);
 	}
 }
 
