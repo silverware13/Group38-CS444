@@ -30,7 +30,7 @@ for x in range(0, 1000000):
 	s1 += random.choice(string.ascii_lowercase)
 
 #write 100 files
-for lp in range(5):
+for lp in range(7):
 
 	#write the string to a file
 	file_name = "TEST_SCATTER_%d.txt" % lp
