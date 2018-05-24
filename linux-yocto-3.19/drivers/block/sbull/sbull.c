@@ -91,10 +91,13 @@ static void sbull_transfer(struct sbull_dev *dev, unsigned long sector,
 		printk (KERN_NOTICE "Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	}
-	if (write)
+	if (write){
 		memcpy(dev->data + offset, buffer, nbytes);
-	else
+		printk ("Write\n");
+	} else {
 		memcpy(buffer, dev->data + offset, nbytes);
+		printk ("Read\n");
+	}
 }
 
 /*
