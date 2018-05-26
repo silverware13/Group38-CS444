@@ -19,8 +19,10 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 
+#include <linux/crypto.h>
+
+
 MODULE_LICENSE("Dual BSD/GPL");
-static char *Version = "1.4";
 
 static int major_num = 0;
 module_param(major_num, int, 0);
@@ -34,6 +36,11 @@ module_param(nsectors, int, 0);
  * in terms of small sectors, always.
  */
 #define KERNEL_SECTOR_SIZE 512
+
+/*
+ * Struct for single block cipher from crypto.h (starting at line 1414)
+ */
+static struct crypto_cipher *Cipher;
 
 /*
  * Our request queue.
@@ -57,15 +64,36 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
+	unsigned long data_sum;
+	u8 *src, *dst; //our source and destination buffers
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	}
-	if (write)
-		memcpy(dev->data + offset, buffer, nbytes);
-	else
-		memcpy(buffer, dev->data + offset, nbytes);
+	if (write) {
+		//memcpy(dev->data + offset, buffer, nbytes);
+		printk(KERN_NOTICE "Encrptying data");
+		data_sum = 0;
+		//keep looping until we reach nbytes
+		while(data_sum < nbytes) {
+			src = data_sum + buffer;
+			dst = data_sum + dev->data + offset;
+			crypto_cipher_encrypt_one(Cipher, dst, src);
+			data_sum += crypto_cipher_blocksize(Cipher);
+		}
+	} else {
+		//memcpy(buffer, dev->data + offset, nbytes);
+		printk(KERN_NOTICE "Decrptying data");
+		data_sum = 0;
+		//keep looping until we reach nbytes
+		while(data_sum < nbytes) {
+			src = data_sum + dev->data + offset;
+			dst = data_sum + buffer;
+			crypto_cipher_decrypt_one(Cipher, dst, src);
+			data_sum += crypto_cipher_blocksize(Cipher);
+		}
+	}
 }
 
 static void sbd_request(struct request_queue *q) {
@@ -153,6 +181,14 @@ static int __init sbd_init(void) {
 	Device.gd->queue = Queue;
 	add_disk(Device.gd);
 
+	/*
+ 	 * Setup cipher.
+ 	 */
+	crypto_cipher_crt(Cipher);
+	if (Cipher == NULL)
+		goto out;
+	crypto_cipher_setkey(Cipher, "aquafarm", 8);
+
 	return 0;
 
 out_unregister:
@@ -167,6 +203,7 @@ static void __exit sbd_exit(void)
 	del_gendisk(Device.gd);
 	put_disk(Device.gd);
 	unregister_blkdev(major_num, "sbd");
+	crypto_free_cipher(Cipher); //we free the cipher
 	blk_cleanup_queue(Queue);
 	vfree(Device.data);
 }

@@ -23,7 +23,6 @@
 
 
 MODULE_LICENSE("Dual BSD/GPL");
-static char *Version = "1.4";
 
 static int major_num = 0;
 module_param(major_num, int, 0);
@@ -65,7 +64,8 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
-	unsigned long buffer_src, buffer_dst, data_sum;
+	unsigned long data_sum;
+	u8 *src, *dst; //our source and destination buffers
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
@@ -75,20 +75,22 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		//memcpy(dev->data + offset, buffer, nbytes);
 		printk(KERN_NOTICE "Encrptying data");
 		data_sum = 0;
+		//keep looping until we reach nbytes
 		while(data_sum < nbytes) {
-			buffer_src = data_sum + buffer;
-			buffer_dst = data_sum + dev->data + offset;
-			crypto_cipher_encrypt_one(Cipher, buffer_dst, buffer_src);
+			src = data_sum + buffer;
+			dst = data_sum + dev->data + offset;
+			crypto_cipher_encrypt_one(Cipher, dst, src);
 			data_sum += crypto_cipher_blocksize(Cipher);
 		}
 	} else {
 		//memcpy(buffer, dev->data + offset, nbytes);
 		printk(KERN_NOTICE "Decrptying data");
 		data_sum = 0;
+		//keep looping until we reach nbytes
 		while(data_sum < nbytes) {
-			buffer_src = data_sum + dev->data + offset;
-			buffer_dst = data_sum + buffer;
-			crypto_cipher_decrypt_one(Cipher, buffer_dst, buffer_src);
+			src = data_sum + dev->data + offset;
+			dst = data_sum + buffer;
+			crypto_cipher_decrypt_one(Cipher, dst, src);
 			data_sum += crypto_cipher_blocksize(Cipher);
 		}
 	}
