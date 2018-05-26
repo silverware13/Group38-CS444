@@ -66,6 +66,9 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
+	unsigned long i;
+	int dst_len = strlen(buffer);
+	int src_len = strlen(dev->data + offset);
 	u8 *dst, *src;
 
 	if ((offset + nbytes) > dev->size) {
@@ -73,23 +76,31 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		return;
 	}
 	if (write) {
-		//memcpy(dev->data + offset, buffer, nbytes);
-		unsigned long i;
-		for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
-			dst = i + dev->data + offset;
-			src = i + buffer;
-			crypto_cipher_encrypt_one(Cipher, dst, src);
+		printk (KERN_NOTICE "---------------------\n");
+		printk (KERN_NOTICE "[EN] Length of dst %d\n", dst_len);
+		printk (KERN_NOTICE "[EN] Length of src %d\n", src_len);
+		if(dst_len > 0 && src_len > 0 && dst_len == src_len){
+			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+				dst = i + dev->data + offset;
+				src = i + buffer;
+				crypto_cipher_encrypt_one(Cipher, dst, src);
+			}
+		} else {
+			memcpy(dev->data + offset, buffer, nbytes);
 		}
 	} else {
-		memcpy(buffer, dev->data + offset, nbytes);
-		printk (KERN_NOTICE "Length of dst %d", strlen(buffer));
-		printk (KERN_NOTICE "Length of src %d", strlen(dev->data + offset));
-		unsigned long i;
-		//for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
-		//	dst = i + buffer;
-		//	src = i + dev->data + offset;
-		//	crypto_cipher_decrypt_one(Cipher, dst, src);
-		//}
+		printk (KERN_NOTICE "---------------------\n");
+		printk (KERN_NOTICE "[DE] Length of dst %d\n", dst_len);
+		printk (KERN_NOTICE "[DE] Length of src %d\n", src_len);
+		if(dst_len > 0 && src_len > 0 && dst_len == src_len){
+			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+				dst = i + buffer;
+				src = i + dev->data + offset;
+				crypto_cipher_decrypt_one(Cipher, dst, src);
+			}
+		} else {
+			memcpy(buffer, dev->data + offset, nbytes);
+		}
 	}
 }
 
