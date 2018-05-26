@@ -79,7 +79,7 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		printk (KERN_NOTICE "---------------------\n");
 		printk (KERN_NOTICE "[EN] Length of dst %d\n", dst_len);
 		printk (KERN_NOTICE "[EN] Length of src %d\n", src_len);
-		if(dst_len > 0 && src_len > 0 && dst_len == src_len){
+		if(dst_len > 0 || src_len > 0){
 			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
 				dst = i + dev->data + offset;
 				src = i + buffer;
@@ -92,7 +92,7 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		printk (KERN_NOTICE "---------------------\n");
 		printk (KERN_NOTICE "[DE] Length of dst %d\n", dst_len);
 		printk (KERN_NOTICE "[DE] Length of src %d\n", src_len);
-		if(dst_len > 0 && src_len > 0 && dst_len == src_len){
+		if(dst_len > 0){
 			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
 				dst = i + buffer;
 				src = i + dev->data + offset;
