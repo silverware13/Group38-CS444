@@ -67,8 +67,6 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
 	unsigned long i;
-	int dst_len = strlen(buffer);
-	int src_len = strlen(dev->data + offset);
 	u8 *dst, *src;
 
 	if ((offset + nbytes) > dev->size) {
@@ -76,30 +74,18 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		return;
 	}
 	if (write) {
-		printk (KERN_NOTICE "---------------------\n");
-		printk (KERN_NOTICE "[EN] Length of dst %d\n", dst_len);
-		printk (KERN_NOTICE "[EN] Length of src %d\n", src_len);
-		if(dst_len > 0 || src_len > 0){
-			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
-				dst = i + dev->data + offset;
-				src = i + buffer;
-				crypto_cipher_encrypt_one(Cipher, dst, src);
-			}
-		} else {
-			memcpy(dev->data + offset, buffer, nbytes);
+		//encrypt when writing 
+		for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+			dst = i + dev->data + offset;
+			src = i + buffer;
+			crypto_cipher_encrypt_one(Cipher, dst, src);
 		}
 	} else {
-		printk (KERN_NOTICE "---------------------\n");
-		printk (KERN_NOTICE "[DE] Length of dst %d\n", dst_len);
-		printk (KERN_NOTICE "[DE] Length of src %d\n", src_len);
-		if(dst_len > 0){
-			for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
-				dst = i + buffer;
-				src = i + dev->data + offset;
-				crypto_cipher_decrypt_one(Cipher, dst, src);
-			}
-		} else {
-			memcpy(buffer, dev->data + offset, nbytes);
+		//decrypt when reading
+		for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+			dst = i + buffer;
+			src = i + dev->data + offset;
+			crypto_cipher_decrypt_one(Cipher, dst, src);
 		}
 	}
 }
@@ -174,6 +160,15 @@ static int __init sbd_init(void) {
 		printk(KERN_WARNING "sbd: unable to get major number\n");
 		goto out;
 	}
+
+	/*
+ 	 * Get a cipher.
+ 	 */
+	Cipher = crypto_alloc_cipher("aes", 0, CRYPTO_ALG_ASYNC);
+	if (Cipher == NULL)
+		goto out;
+	crypto_cipher_setkey(Cipher, key, strlen(key));
+
 	/*
 	 * And the gendisk structure.
 	 */
@@ -189,11 +184,6 @@ static int __init sbd_init(void) {
 	Device.gd->queue = Queue;
 	add_disk(Device.gd);
 
-	/*
- 	 * Setup cipher.
- 	 */
-	Cipher = crypto_alloc_cipher("aes", 4, CRYPTO_ALG_ASYNC);
-	crypto_cipher_setkey(Cipher, key, 32);
 
 	return 0;
 
