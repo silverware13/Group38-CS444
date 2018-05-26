@@ -40,7 +40,9 @@ module_param(nsectors, int, 0);
 /*
  * Struct for single block cipher from crypto.h (starting at line 1414)
  */
-static struct crypto_cipher *Cipher;
+struct crypto_cipher *Cipher;
+u8 key[32] ={0xa1,0xa2,0xa3,0xa4,0xa5,0xa6,0xa7,0xa8,0xa9,0x10,0xb1,0xb2,0xb3,0xb4,0xb5,
+	0xb6,0xb7,0xb8,0xb9,0x10,0xc1,0xc2,0xc3,0xc4,0xc5,0xc6,0xc7,0xc8,0xc9,0x10,0xd1,0xd2};
 
 /*
  * Our request queue.
@@ -64,8 +66,7 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
-	unsigned long data_sum;
-	u8 *src, *dst; //our source and destination buffers
+	u8 *dst, *src;
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
@@ -73,26 +74,22 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 	}
 	if (write) {
 		//memcpy(dev->data + offset, buffer, nbytes);
-		printk(KERN_NOTICE "Encrptying data");
-		data_sum = 0;
-		//keep looping until we reach nbytes
-		while(data_sum < nbytes) {
-			src = data_sum + buffer;
-			dst = data_sum + dev->data + offset;
+		unsigned long i;
+		for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+			dst = i + dev->data + offset;
+			src = i + buffer;
 			crypto_cipher_encrypt_one(Cipher, dst, src);
-			data_sum += crypto_cipher_blocksize(Cipher);
 		}
 	} else {
-		//memcpy(buffer, dev->data + offset, nbytes);
-		printk(KERN_NOTICE "Decrptying data");
-		data_sum = 0;
-		//keep looping until we reach nbytes
-		while(data_sum < nbytes) {
-			src = data_sum + dev->data + offset;
-			dst = data_sum + buffer;
-			crypto_cipher_decrypt_one(Cipher, dst, src);
-			data_sum += crypto_cipher_blocksize(Cipher);
-		}
+		memcpy(buffer, dev->data + offset, nbytes);
+		printk (KERN_NOTICE "Length of dst %d", strlen(buffer));
+		printk (KERN_NOTICE "Length of src %d", strlen(dev->data + offset));
+		unsigned long i;
+		//for(i = 0; i < nbytes; i+=crypto_cipher_blocksize(Cipher)){
+		//	dst = i + buffer;
+		//	src = i + dev->data + offset;
+		//	crypto_cipher_decrypt_one(Cipher, dst, src);
+		//}
 	}
 }
 
@@ -184,10 +181,8 @@ static int __init sbd_init(void) {
 	/*
  	 * Setup cipher.
  	 */
-	crypto_cipher_crt(Cipher);
-	if (Cipher == NULL)
-		goto out;
-	crypto_cipher_setkey(Cipher, "aquafarm", 8);
+	Cipher = crypto_alloc_cipher("aes", 4, CRYPTO_ALG_ASYNC);
+	crypto_cipher_setkey(Cipher, key, 32);
 
 	return 0;
 
