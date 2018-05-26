@@ -29,10 +29,20 @@ module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
 
+//Set encrypt key and length, then pass encrypt key to module, then insmod will line with any argument from command line.
+
+module_param(encrypt_key, charp, 0);
+static int encrypt_key_length = 10;
+struct crypto_cipher *encrypt;
+
+
 /*
  * We can tweak our hardware sector size, but the kernel talks to us
  * in terms of small sectors, always.
  */
+
+static char *encrypt_key = "1234567890";
+
 #define KERNEL_SECTOR_SIZE 512
 
 /*
@@ -57,15 +67,63 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
+	int i;
+	unsigned long length;
+	char *mode[2];
+	u8 *source;
+	u8 *destination;
+
+	crypto_cipher_setkey(encrypt, encrypt_key, encrypt_key_length);
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	}
-	if (write)
-		memcpy(dev->data + offset, buffer, nbytes);
-	else
-		memcpy(buffer, dev->data + offset, nbytes);
+	if (write) {
+	   printk("Encrypting data: \n");
+	   mode[1] = "Unencrypted";
+	   mode[2] = "Encrypted";
+	   destination = dev->data + offset;
+	   source = buffer;
+
+	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
+	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
+	   }
+	}
+	else {
+	   printk("Decrypting data: \n");
+	   mode[1] = "Encrypted";
+	   mode[2] = "Unencrypted";
+	   destination = buffer;
+	   source = dev->data + offset;
+
+	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
+	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
+	   }
+	}
+
+	length = nbytes;
+
+	printk("\n **************************** \n");
+	printk("%s:", mode[1]);
+	printk("\n **************************** \n");
+
+	for (i = 0; i < length; i++){
+	   printk("%u", (unsigned) *source++);
+	}
+
+	printk("\n");
+
+	printk("\n **************************** \n");
+	printk("%s:", mode[2]);
+	printk("\n **************************** \n");
+
+	for (i = 0; i < length; i++){
+	   printk("%u", (unsigned) *destination++);
+	}
+
+	printk("\n");
+
 }
 
 static void sbd_request(struct request_queue *q) {
@@ -82,7 +140,7 @@ static void sbd_request(struct request_queue *q) {
 			continue;
 		}
 		sbd_transfer(&Device, blk_rq_pos(req), blk_rq_cur_sectors(req),
-				bio_data(req->bio), rq_data_dir(req));
+			bio_data(req->bio), rq_data_dir(req));
 		if ( ! __blk_end_request_cur(req, 0) ) {
 			req = blk_fetch_request(q);
 		}
