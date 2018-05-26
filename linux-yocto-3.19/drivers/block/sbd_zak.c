@@ -19,6 +19,9 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 
+#include <linux/crypto.h>
+
+
 MODULE_LICENSE("Dual BSD/GPL");
 static char *Version = "1.4";
 
@@ -29,21 +32,16 @@ module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
 
-//Set encrypt key and length, then pass encrypt key to module, then insmod will line with any argument from command line.
-
-module_param(encrypt_key, charp, 0);
-static int encrypt_key_length = 10;
-struct crypto_cipher *encrypt;
-
-
 /*
  * We can tweak our hardware sector size, but the kernel talks to us
  * in terms of small sectors, always.
  */
-
-static char *encrypt_key = "1234567890";
-
 #define KERNEL_SECTOR_SIZE 512
+
+/*
+ * Struct for single block cipher from crypto.h (starting at line 1414)
+ */
+static struct crypto_cipher *Cipher;
 
 /*
  * Our request queue.
@@ -67,63 +65,33 @@ static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
-	int i;
-	unsigned long length;
-	char *mode[2];
-	u8 *source;
-	u8 *destination;
-
-	crypto_cipher_setkey(encrypt, encrypt_key, encrypt_key_length);
+	unsigned long buffer_src, buffer_dst, data_sum;
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	}
 	if (write) {
-	   printk("Encrypting data: \n");
-	   mode[1] = "Unencrypted";
-	   mode[2] = "Encrypted";
-	   destination = dev->data + offset;
-	   source = buffer;
-
-	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
-	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
-	   }
+		//memcpy(dev->data + offset, buffer, nbytes);
+		printk(KERN_NOTICE "Encrptying data");
+		data_sum = 0;
+		while(data_sum < nbytes) {
+			buffer_src = data_sum + buffer;
+			buffer_dst = data_sum + dev->data + offset;
+			crypto_cipher_encrypt_one(Cipher, buffer_dst, buffer_src);
+			data_sum += crypto_cipher_blocksize(Cipher);
+		}
+	} else {
+		//memcpy(buffer, dev->data + offset, nbytes);
+		printk(KERN_NOTICE "Decrptying data");
+		data_sum = 0;
+		while(data_sum < nbytes) {
+			buffer_src = data_sum + dev->data + offset;
+			buffer_dst = data_sum + buffer;
+			crypto_cipher_decrypt_one(Cipher, buffer_dst, buffer_src);
+			data_sum += crypto_cipher_blocksize(Cipher);
+		}
 	}
-	else {
-	   printk("Decrypting data: \n");
-	   mode[1] = "Encrypted";
-	   mode[2] = "Unencrypted";
-	   destination = buffer;
-	   source = dev->data + offset;
-
-	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
-	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
-	   }
-	}
-
-	length = nbytes;
-
-	printk("\n **************************** \n");
-	printk("%s:", mode[1]);
-	printk("\n **************************** \n");
-
-	for (i = 0; i < length; i++){
-	   printk("%u", (unsigned) *source++);
-	}
-
-	printk("\n");
-
-	printk("\n **************************** \n");
-	printk("%s:", mode[2]);
-	printk("\n **************************** \n");
-
-	for (i = 0; i < length; i++){
-	   printk("%u", (unsigned) *destination++);
-	}
-
-	printk("\n");
-
 }
 
 static void sbd_request(struct request_queue *q) {
@@ -140,7 +108,7 @@ static void sbd_request(struct request_queue *q) {
 			continue;
 		}
 		sbd_transfer(&Device, blk_rq_pos(req), blk_rq_cur_sectors(req),
-			bio_data(req->bio), rq_data_dir(req));
+				bio_data(req->bio), rq_data_dir(req));
 		if ( ! __blk_end_request_cur(req, 0) ) {
 			req = blk_fetch_request(q);
 		}
@@ -211,6 +179,14 @@ static int __init sbd_init(void) {
 	Device.gd->queue = Queue;
 	add_disk(Device.gd);
 
+	/*
+ 	 * Setup cipher.
+ 	 */
+	crypto_cipher_crt(Cipher);
+	if (Cipher == NULL)
+		goto out;
+	crypto_cipher_setkey(Cipher, "aquafarm", 8);
+
 	return 0;
 
 out_unregister:
@@ -225,6 +201,7 @@ static void __exit sbd_exit(void)
 	del_gendisk(Device.gd);
 	put_disk(Device.gd);
 	unregister_blkdev(major_num, "sbd");
+	crypto_free_cipher(Cipher); //we free the cipher
 	blk_cleanup_queue(Queue);
 	vfree(Device.data);
 }
