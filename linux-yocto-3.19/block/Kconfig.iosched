@@ -32,14 +32,6 @@ config IOSCHED_CFQ
 
 	  This is the default I/O scheduler.
 
-config IOSCHED_SSTF
-	tristate "SSTF I/O scheduler"
-	default y
-	---help---
-	 Sorts IO based on location of the read/write head.
-	 Moves up until it reaches the highest sector and then
-	 returns to the start again.	
-
 config CFQ_GROUP_IOSCHED
 	bool "CFQ Group Scheduling support"
 	depends on IOSCHED_CFQ && BLK_CGROUP
@@ -60,9 +52,6 @@ choice
 	config DEFAULT_CFQ
 		bool "CFQ" if IOSCHED_CFQ=y
 
-	config DEFAULT_SSTF
-		bool "SSTF" if IOSCHED_SSTF=y
-
 	config DEFAULT_NOOP
 		bool "No-op"
 
@@ -73,7 +62,6 @@ config DEFAULT_IOSCHED
 	default "deadline" if DEFAULT_DEADLINE
 	default "cfq" if DEFAULT_CFQ
 	default "noop" if DEFAULT_NOOP
-	default "sstf" if DEFAULT_SSTF
 
 endmenu
 

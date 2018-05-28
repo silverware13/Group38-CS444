@@ -60,74 +60,68 @@ static struct sbd_device {
 	struct gendisk *gd;
 } Device;
 
+void printResult(u8 *destination, int length) {
+        int i;
+
+        for (i = 0; i < length; i++) {
+                printk("%u", (unsigned) destination);
+        }
+
+        printk("\n");
+}
+
 /*
  * Handle an I/O request.
  */
-static void sbd_transfer(struct sbd_device *dev, sector_t sector,
-		unsigned long nsect, char *buffer, int write) {
+static void sbd_transfer(struct sbd_device *dev, sector_t sector, unsigned long nsect, char *buffer, int write) {
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
 	int i;
-	unsigned long length;
-	char *mode[2];
 	u8 *source;
 	u8 *destination;
 
-	crypto_cipher_setkey(encrypt, encrypt_key, encrypt_key_length);
+	crypto_cipher_setkey(encrypt, encrypt_key, encrypt_key_length); //checks length for validity
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	}
-	if (write) {
-	   printk("Encrypting data: \n");
-	   mode[1] = "Unencrypted";
-	   mode[2] = "Encrypted";
-	   destination = dev->data + offset;
-	   source = buffer;
 
-	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
-	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
-	   }
-	}
-	else {
-	   printk("Decrypting data: \n");
-	   mode[1] = "Encrypted";
-	   mode[2] = "Unencrypted";
-	   destination = buffer;
-	   source = dev->data + offset;
+        //async_setkey(encrypt, encrypt_key, encrypt_key_length);
 
-	   for(i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)){
-	      crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
-	   }
-	}
+        if (write) { //write data to disk
+                printk("Data Being Encrypted... \n");
 
-	length = nbytes;
+                destination = dev->data + offset;
+                source = buffer;
 
-	printk("\n **************************** \n");
-	printk("%s:", mode[1]);
-	printk("\n **************************** \n");
+                //iterate in blocks being read and encrypt it
+                for (i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)) {
+                        //async_encrypt(encrypt);
+                        crypto_cipher_encrypt_one(encrypt, destination + i, source + i);
+                        counter++;
+                }
+        }
+        else { //data being read from disk
+                printk("Data Being Decrypted... \n");
 
-	for (i = 0; i < length; i++){
-	   printk("%u", (unsigned) *source++);
-	}
+                destination = dev->data + offset;
+                source = buffer;
 
-	printk("\n");
+                //iterate in blocks being read and decrypt it
+                for (i = 0; i < nbytes; i += crypto_cipher_blocksize(encrypt)) {
+                        //async_decrypt(encrypt);
+                        crypto_cipher_decrypt_one(encrypt, destination + i, source + i);
+                }
+        }
 
-	printk("\n **************************** \n");
-	printk("%s:", mode[2]);
-	printk("\n **************************** \n");
-
-	for (i = 0; i < length; i++){
-	   printk("%u", (unsigned) *destination++);
-	}
-
-	printk("\n");
-
+        printResult(destination, nbytes);
 }
 
 static void sbd_request(struct request_queue *q) {
 	struct request *req;
+
+        printk("Requesting Block... \n");
 
 	req = blk_fetch_request(q);
 	while (req != NULL) {
