@@ -1,0 +1,13 @@
+Design and plan:
+
+This is our initial design and plan for hw4.
+
+We will start by trying to get a better understanding of system calls. For our best-fit
+implimentation we will need a system call number. Our instructor pointed out that there
+are a number of reserved system calls, but 600 is not one of then. So we will use 600
+for our best-fit slob.
+
+Next we will copy the slob.c file to use to implement our best-fit allocation algorithm. 
+Since slob.c already handles first-fit, we can modify it to save the first-fit, but then search
+for better fits until there are no other valid options. When there are no other valid options
+it will use the current best-fit.
