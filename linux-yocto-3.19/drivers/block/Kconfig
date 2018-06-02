@@ -547,9 +547,6 @@ config BLK_DEV_RBD
 
 	  If unsure, say N.
 
-config BLK_SBD
-	tristate "SBD block device driver"
-
 config BLK_DEV_RSXX
 	tristate "IBM Flash Adapter 900GB Full Height PCIe Device Driver"
 	depends on PCI
