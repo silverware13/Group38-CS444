@@ -268,13 +268,12 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
  */
 static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 {
-	int best_fit = 0; //used to try to find the best fit
 	struct page *sp, *best;
-	struct list_head *prev;
+	//struct list_head *prev;
 	struct list_head *slob_list;
 	slob_t *b = NULL;
 	unsigned long flags;
-	*best = NULL;
+	best = NULL;
 
 	if (size < SLOB_BREAK1)
 		slob_list = &free_slob_small;
@@ -283,7 +282,9 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 	else
 		slob_list = &free_slob_large;
 
+	/* save flags */
 	spin_lock_irqsave(&slob_lock, flags);
+
 	/* Iterate through each partially free page, try to find room */
 	list_for_each_entry(sp, slob_list, lru) {
 #ifdef CONFIG_NUMA
@@ -300,12 +301,12 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 
 		/* The first non-null page is the starting point for best-fit */
 		if(best == NULL)
-			best = *sp;
+			best = sp;
 			continue;
 
 		/* See if this is a better fit than what we have. */
 		if(sp->units < best->units)
-			best = *sp;
+			best = sp;
 	
 		/* Attempt to alloc
 		 * prev = sp->lru.prev;
@@ -323,12 +324,14 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		 * break;
 		 */
 	}
-	spin_unlock_irqrestore(&slob_lock, flags);
 	
 	/* Attempt to alloc with the best fit*/
 	if(best != NULL)
 		b = slob_page_alloc(best, size, align);
 
+	/* load flags */
+	spin_unlock_irqrestore(&slob_lock, flags);
+	
 	/* Not enough space: must allocate a new page */
 	if (!b) {
 		b = slob_new_pages(gfp & ~__GFP_ZERO, 0, node);
