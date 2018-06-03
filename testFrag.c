@@ -4,9 +4,8 @@
  * Name: Zachary Thomas
  * Date: 6/2/2018
  * ----------------
- * This simple script shows a SLOBs
- * fragmentation sufferred by using
- * a system call.
+ * This simple script simply
+ * uses our SLOB system call.
  */
 
 #include <stdio.h>
@@ -14,7 +13,6 @@
 
 int main()
 {
-	int callVal = syscall(359);
-	printf("Memory usage: %lu%.\n", callVal);
+	syscall(359);
 	return 0;
 }
