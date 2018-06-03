@@ -643,11 +643,40 @@ void __init kmem_cache_init_late(void)
 }
 
 //this system call should show the percentage of memory useage
-asmlinkage long sys_slob(void){
-	long space = 0;
-	long free_space = 0;
-	long pages = 0;
+asmlinkage long sys_slob(void)
+{
+	struct list_head *slob_list;
+	unsigned long flags;
 
+	long pages = 0;
+	long space_free = 0;
+	long space = 0;
+
+	//save flags
+	spin_lock_irqsave(&slob_lock, flags);
+	
+	//find out memory useage
+	int i;
+	for(i = 1; while i < 4; i++){
+		if(i == 1)	
+			slob_list = &free_slob_small;
+		if(i == 2)	
+			slob_list = &free_slob_medium;
+		if(i == 3)	
+			slob_list = &free_slob_large;
+		list_for_each_entry(sp, slob_list, list){
+			pages++;
+			space_free += sp->units;
+		}
+	}
+
+	//we can figure out the space based on the number of pages
+	//and their size.
+	space = pages * SLOB_UNITS(PAGE_SIZE);	
+
+	//load flags
+	spin_unlock_irqsave(&slob_lock, flags);
+	
 	//we return the percentage of used space.
-	return (1 - ((free_space)/(space))) * 100;
+	return (1 - ((space_free)/(space))) * 100;
 }
