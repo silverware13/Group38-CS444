@@ -642,7 +642,12 @@ void __init kmem_cache_init_late(void)
 	slab_state = FULL;
 }
 
-//this system call should show the internal fragmentation
+//this system call should show the percentage of memory useage
 asmlinkage long sys_slob(void){
-	return 1337;
+	long space = 0;
+	long free_space = 0;
+	long pages = 0;
+
+	//we return the percentage of used space.
+	return (1 - ((free_space)/(space))) * 100;
 }
