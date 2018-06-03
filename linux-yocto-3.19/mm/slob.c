@@ -71,6 +71,7 @@
 #include <trace/events/kmem.h>
 
 #include <linux/atomic.h>
+#include <linux/syscalls.h>
 
 #include "slab.h"
 /*
@@ -642,7 +643,7 @@ void __init kmem_cache_init_late(void)
 }
 
 //this system call should show the internal fragmentation
-asmlinkage long sys_mem_useage(void){
-	printk(KERN_NOTICE "Used sys_mem_useage system call");
+asmlinkage unsigned long sys_slob(void){
+	printk("Hello world\n");
 	return 0;
 }
