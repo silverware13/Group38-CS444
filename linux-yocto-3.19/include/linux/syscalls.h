@@ -882,6 +882,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
 			const char __user *const __user *argv,
 			const char __user *const __user *envp, int flags);
 
-asmlinkage unsigned long sys_slob(void);
+asmlinkage long sys_slob(void);
 
 #endif

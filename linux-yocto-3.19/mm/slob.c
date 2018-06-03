@@ -643,7 +643,6 @@ void __init kmem_cache_init_late(void)
 }
 
 //this system call should show the internal fragmentation
-asmlinkage unsigned long sys_slob(void){
-	printk("Hello world\n");
-	return 0;
+asmlinkage long sys_slob(void){
+	return 1337;
 }
