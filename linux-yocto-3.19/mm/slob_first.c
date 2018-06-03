@@ -268,7 +268,6 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
  */
 static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 {
-	int best_fit = 0; //used to try to find the best fit
 	struct page *sp;
 	struct list_head *prev;
 	struct list_head *slob_list;
@@ -297,12 +296,6 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		if (sp->units < SLOB_UNITS(size))
 			continue;
 
-		/* See if this is a better fit than our last try */
-		if (SLOB_UNITS(size) > best_fit)
-			best_fit = SLOB_UNITS(size);
-		else
-			continue; 		
-
 		/* Attempt to alloc */
 		prev = sp->lru.prev;
 		b = slob_page_alloc(sp, size, align);
@@ -312,11 +305,10 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		/* Improve fragment distribution and reduce our average
 		 * search time by starting our next search here. (see
 		 * Knuth vol 1, sec 2.5, pg 449) */
-		//if (prev != slob_list->prev &&
-		//		slob_list->next != prev->next)
-		//	list_move_tail(slob_list, prev->next);
-		//break;
-
+		if (prev != slob_list->prev &&
+				slob_list->next != prev->next)
+			list_move_tail(slob_list, prev->next);
+		break;
 	}
 	spin_unlock_irqrestore(&slob_lock, flags);
 
