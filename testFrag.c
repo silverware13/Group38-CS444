@@ -15,6 +15,6 @@
 int main()
 {
 	int callVal = syscall(359);
-	printf("The system call worked: %lu.\n", callVal);
+	printf("Memory usage: %lu%.\n", callVal);
 	return 0;
 }
