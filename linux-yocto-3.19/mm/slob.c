@@ -652,6 +652,7 @@ asmlinkage long sys_slob(void)
 	long pages = 0;
 	long space_free = 0;
 	long space = 0;
+	int space_percent;
 	int i;
 	
 	//save flags
@@ -675,9 +676,15 @@ asmlinkage long sys_slob(void)
 	//and their size.
 	space = pages * SLOB_UNITS(PAGE_SIZE);	
 
+	//we can figure out the percentage of the space used with
+	//space and space_free.
+	space_percent = 100 - (100 * space_free / space);
+
 	//load flags
 	spin_unlock_irqrestore(&slob_lock, flags);
-	
-	//we return the percentage of used space.
-	return (1 - ((space_free)/(space))) * 100;
+
+	printk("Total space: %lu.\n", space);
+	printk("Free space: %lu.\n", space_free);
+	printk("Space used: %d percent.\n", space_percent);	
+	return 0;
 }
